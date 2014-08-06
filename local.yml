@@ -1,0 +1,28 @@
+---
+- hosts: localhost
+  connection: local
+  user: root
+  vars:
+    author: dch@apache.org
+    schedule: '*/15 * * * *'
+    cron_user: root
+    logfile: /var/log/ansible-pull.log
+    workdir: /var/lib/ansible/local
+    repo_url: git://github.com/dch/couchdb-vm.git
+
+  tasks:
+    - name: Install ansible
+      action: apt pkg=ansible state=installed
+
+    - name: ensure a secure local working dir
+      action: file path={{workdir}} state=directory owner=root group=root mode=0751
+
+    - name: create local-only ansible inventory file on client
+      action: copy content="localhost        ansible_connection=local" dest=/etc/ansible/hosts
+              owner=root group=root mode=0644
+
+    - name: Create crontab entry to clone/pull git repository
+      action: template src=templates/etc_cron.d_ansible-pull.j2 dest=/etc/cron.d/ansible-pull owner=root group=root mode=0644
+
+    - name: Create logrotate entry for ansible-pull.log
+      action: template src=templates/etc_logrotate.d_ansible-pull.j2 dest=/etc/logrotate.d/ansible-pull owner=root group=root mode=0644
